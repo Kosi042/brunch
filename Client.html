@@ -1,0 +1,174 @@
+<script>
+(() => {
+  'use strict';
+  const live = Boolean(window.google && google.script && google.script.run);
+  const $ = id => document.getElementById(id);
+  const demoKey = 'brunch-demo-v2', pendingKey = 'brunch-pending-v2', visitorKey = 'brunch-visitor-v1';
+  const examples = [
+    {id:'rolls',name:'Brötchen',unit:'Stück',mode:'quantity'},
+    {id:'eggs',name:'Eier',unit:'Stück',mode:'quantity'},
+    {id:'croissants',name:'Croissants',unit:'Stück',mode:'quantity'},
+    {id:'coffee',name:'Kaffee',unit:'Tassen',mode:'quantity'},
+    {id:'tea',name:'Tee',unit:'Personen',mode:'interest'},
+    {id:'juice',name:'Orangensaft',unit:'Gläser',mode:'quantity'}
+  ].map(food => ({...food,active:true,total:0,selected:false}));
+  let localStore, sessionStore;
+  try { localStore = window.localStorage; sessionStore = window.sessionStorage; } catch {}
+  function read(storage,key) { try { return JSON.parse(storage.getItem(key)); } catch { return null; } }
+  function write(storage,key,value) { try { if(value===null) storage.removeItem(key); else storage.setItem(key,JSON.stringify(value)); return true; } catch { return false; } }
+  function id() { return crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(20)),n=>n.toString(16).padStart(2,'0')).join(''); }
+  let visitorId = read(localStore,visitorKey);
+  if(typeof visitorId!=='string' || !/^[a-zA-Z0-9_-]{16,100}$/.test(visitorId)) { visitorId=id(); if(!write(localStore,visitorKey,visitorId)) visitorId=''; }
+  let demoFoods = read(localStore,demoKey);
+  if(!Array.isArray(demoFoods)) {
+    const old = read(localStore,'brunch-example-totals-v1');
+    demoFoods = examples.map(food => ({...food,total:food.mode==='quantity' ? Math.max(0,Math.min(10000,old?.find(item=>item.id===food.id)?.total || 0)) : 0}));
+  }
+  let menu={foods:[],maximum:10000}, busy=false, pending=null, hostKey='', hostFoods=[], hostBusy=false, editId=null;
+  if(live) {
+    const saved=read(sessionStore,pendingKey);
+    if(saved && ['changeCount','setInterest'].includes(saved.method) && Array.isArray(saved.args)) pending=saved;
+  }
+  $('demo').hidden=live; $('host-demo').hidden=live; $('host-code-field').hidden=!live;
+  $('host-code').required=live; $('host-login-button').textContent=live?'Anmelden':'Verwaltung ausprobieren';
+  function status(text,error=false) { $('status').textContent=text; $('status-line').classList.toggle('error',error); }
+  function hostStatus(text,error=false) { $('host-status').textContent=text; $('host-status').classList.toggle('error',error); }
+  function controls() {
+    $('refresh').disabled=busy||Boolean(pending); $('foods').setAttribute('aria-busy',String(busy));
+    document.querySelectorAll('.step,.interest-button').forEach(button=>{
+      const food=menu.foods.find(item=>item.id===button.dataset.food);
+      button.disabled=busy||Boolean(pending)||!food||(!visitorId && food.mode==='interest')
+        ||(food.mode==='quantity' && (button.dataset.delta==='-1'?food.total<=0:food.total>=menu.maximum));
+    });
+    $('retry').disabled=busy;
+  }
+  function element(tag,cls,text) { const el=document.createElement(tag); if(cls)el.className=cls; if(text!==undefined)el.textContent=text; return el; }
+  function render() {
+    const active=document.activeElement, focusFood=active?.dataset.food, focusDelta=active?.dataset.delta;
+    $('foods').replaceChildren();
+    menu.foods.filter(food=>food.active).forEach((food,index)=>{
+      const row=element('article','food'+(food.mode==='interest'?' interest':''));
+      const number=element('span','number',String(index+1).padStart(2,'0')); number.setAttribute('aria-hidden','true');
+      const label=element('div'); label.append(element('h3','',food.name),element('div','unit',food.mode==='interest'?'Wer möchte etwas?':'Einheit: '+food.unit));
+      const group=element('div',food.mode==='interest'?'interest-control':'counter');
+      if(food.mode==='interest') {
+        const total=element('div','interest-total',food.total+' '+(food.total===1?'Person':'Personen'));
+        const button=element('button','interest-button'+(food.selected?' selected':''),food.selected?'✓ Ich bin dabei':'Ja, ich möchte etwas');
+        button.type='button'; button.dataset.food=food.id; button.setAttribute('aria-pressed',String(food.selected));
+        button.setAttribute('aria-label',food.name+': '+(food.selected?'Auswahl zurücknehmen':'Ich möchte etwas'));
+        button.addEventListener('click',()=>change('setInterest',[food.id,!food.selected,visitorId,id()]));
+        group.append(total,button);
+      } else {
+        const total=element('div','amount',food.total); total.setAttribute('aria-label',food.name+': insgesamt '+food.total+', Einheit: '+food.unit); total.append(element('small','','gesamt'));
+        [-1,1].forEach(delta=>{
+          const button=element('button','step'+(delta===1?' plus':''),delta===1?'+':'−'); button.type='button';
+          button.dataset.food=food.id; button.dataset.delta=String(delta);
+          button.setAttribute('aria-label',food.name+(delta===1?': eins hinzufügen':': eins abziehen'));
+          button.addEventListener('click',()=>change('changeCount',[food.id,delta,id(),visitorId]));
+          group.append(button); if(delta===-1)group.append(total);
+        });
+      }
+      row.append(number,label,group); $('foods').append(row);
+    });
+    $('empty').hidden=menu.foods.some(food=>food.active); controls();
+    if(focusFood) [...document.querySelectorAll('[data-food]')].find(button=>button.dataset.food===focusFood && button.dataset.delta===focusDelta && !button.disabled)?.focus({preventScroll:true});
+  }
+  function demoSnapshot(host=false) { return {foods:demoFoods.filter(food=>host||food.active).map(food=>({...food})),maximum:10000}; }
+  function call(method,...args) {
+    if(!live) {
+      const saved=read(localStore,demoKey); if(Array.isArray(saved))demoFoods=saved;
+      const food=demoFoods.find(item=>item.id===args[0]);
+      if(method==='changeCount' && food?.mode==='quantity') food.total=Math.max(0,Math.min(10000,food.total+args[1]));
+      if(method==='setInterest' && food?.mode==='interest') { food.total+=Number(args[1])-Number(food.selected); food.selected=args[1]; }
+      if(method==='saveFood') {
+        if(!args[0])return Promise.reject(new Error('Bitte zuerst den Gastgeber-Bereich öffnen.'));
+        const input=args[1], existing=demoFoods.find(item=>item.id===input.id);
+        const updated={...input,unit:input.mode==='interest'?'Personen':input.unit,total:existing?.total||0,selected:existing?.selected||false};
+        if(existing)demoFoods[demoFoods.indexOf(existing)]=updated; else demoFoods.push(updated);
+      }
+      if(method!=='getMenu')write(localStore,demoKey,demoFoods);
+      return Promise.resolve(demoSnapshot(method==='saveFood'||Boolean(args[1] && method==='getMenu')));
+    }
+    return new Promise((resolve,reject)=>{
+      const runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+      if(method==='getMenu')runner.getMenu(...args);
+      else if(method==='changeCount')runner.changeCount(...args);
+      else if(method==='setInterest')runner.setInterest(...args);
+      else if(method==='saveFood')runner.saveFood(...args);
+      else reject(new Error('Unbekannte Aktion.'));
+    });
+  }
+  async function refresh(quiet=false) {
+    if(busy||pending||hostBusy)return; busy=true; controls(); if(!quiet)status('Die gemeinsame Liste wird aktualisiert…');
+    try {
+      menu=await call('getMenu',visitorId); busy=false; render();
+      status(!visitorId?'Für die Ja/Nein-Auswahl bitte Browserspeicher erlauben.':live?'Aktuell · die Gesamtmengen werden automatisch aktualisiert':'Beispielvorschau · nur in diesem Browser gespeichert');
+    } catch(error) {status(error.message||'Die Auswahl konnte nicht geladen werden.',true);} finally {busy=false;controls();}
+  }
+  async function change(method,args) {
+    if(busy||pending)return; pending={method,args}; if(live)write(sessionStore,pendingKey,pending); await savePending();
+  }
+  async function savePending() {
+    if(busy||!pending)return; busy=true; $('retry').hidden=true; controls(); status('Deine Änderung wird gespeichert…');
+    try {
+      const result=await call(pending.method,...pending.args), changed=result.foods.find(food=>food.id===pending.args[0]);
+      menu=result;pending=null;write(sessionStore,pendingKey,null);busy=false;render();
+      status(result.notice||((live?'Gespeichert':'Vorschau aktualisiert')+(changed?' · '+changed.name+': '+changed.total+' '+(changed.mode==='interest'&&changed.total===1?'Person':changed.unit):'')));
+    } catch(error) {status('Nicht bestätigt. Mit „Erneut speichern“ wird dieselbe Änderung geprüft, ohne sie doppelt zu zählen. '+(error.message||''),true);$('retry').hidden=false;}
+    finally {busy=false;controls();}
+  }
+  function modeFields() {
+    const interest=$('food-mode').value==='interest'; $('food-unit-field').hidden=interest; $('food-unit').required=!interest;
+    $('mode-help').textContent=editId?'Die Zählweise bleibt bei bestehenden Einträgen erhalten.':interest?'Ein Ja zählt eine Person – unabhängig von der Anzahl der Portionen.':'Gäste wählen mit Plus und Minus die gewünschte Menge.';
+  }
+  function resetForm() {
+    editId=null;$('food-form').reset();$('food-mode').disabled=false;$('food-form-title').textContent='Neue Auswahl hinzufügen';$('food-save').textContent='Hinzufügen';$('food-cancel').hidden=true;modeFields();
+  }
+  function renderHost() {
+    $('host-foods').replaceChildren();
+    hostFoods.forEach(food=>{
+      const row=element('div','host-food'),text=element('div');
+      text.append(element('strong','',food.name),element('small','',`${food.mode==='interest'?'Interesse · Personen':food.unit}${food.active?'':' · ausgeblendet'}`));
+      const edit=element('button','text-button','Bearbeiten');edit.type='button';edit.setAttribute('aria-label',food.name+' bearbeiten');
+      edit.addEventListener('click',()=>{
+        if(hostBusy)return;editId=food.id;$('food-name').value=food.name;$('food-mode').value=food.mode;$('food-mode').disabled=true;$('food-unit').value=food.unit;$('food-active').checked=food.active;
+        $('food-form-title').textContent='Auswahl bearbeiten';$('food-save').textContent='Speichern';$('food-cancel').hidden=false;modeFields();$('food-name').focus();
+      });row.append(text,edit);$('host-foods').append(row);
+    });
+    if(!hostFoods.length)$('host-foods').append(element('p','field-hint','Noch keine Auswahl. Füge oben deinen ersten Eintrag hinzu.'));
+  }
+  async function login(event) {
+    event.preventDefault();if(hostBusy)return;hostBusy=true;$('host-login-button').disabled=true;hostStatus('Gastgeber-Zugang wird geprüft…');
+    const key=live?$('host-code').value.trim():'local-preview';
+    try {
+      if(!key)throw new Error('Bitte den Gastgeber-Code eingeben.');
+      const result=await call('getMenu',visitorId,key);hostKey=key;hostFoods=result.foods;$('host-code').value='';$('host-login').hidden=true;$('host-tools').hidden=false;renderHost();hostStatus('');
+    } catch(error) {hostStatus(error.message||'Anmeldung nicht möglich.',true);}
+    finally{hostBusy=false;$('host-login-button').disabled=false;}
+  }
+  async function saveFood(event) {
+    event.preventDefault();if(hostBusy)return;
+    if(busy||pending){hostStatus('Bitte zuerst die laufende Änderung abschließen.',true);return;}
+    // Keep this ID after a failed request so retrying cannot create a duplicate food.
+    const input={id:editId||id(),name:$('food-name').value.trim(),mode:$('food-mode').value,unit:$('food-unit').value.trim(),active:$('food-active').checked};
+    if(!input.name||/^[=+@-]/.test(input.name)||(input.mode==='quantity'&&(!input.unit||/^[=+@-]/.test(input.unit)))){hostStatus('Bitte einen gültigen Namen und eine Einheit eingeben.',true);return;}
+    editId=input.id;hostBusy=true;$('food-save').disabled=true;hostStatus('Auswahl wird gespeichert…');
+    try {
+      const result=await call('saveFood',hostKey,input,visitorId);hostFoods=result.foods;menu={...result,foods:result.foods.filter(food=>food.active)};render();renderHost();resetForm();hostStatus('Gespeichert. Die Auswahl ist aktualisiert.');
+    } catch(error) {hostStatus(error.message||'Speichern nicht möglich. Bitte erneut versuchen.',true);}
+    finally{hostBusy=false;$('food-save').disabled=false;}
+  }
+  $('host-open').addEventListener('click',async()=>{
+    $('host-dialog').showModal();
+    if(hostKey&&!hostBusy){try{hostFoods=(await call('getMenu',visitorId,hostKey)).foods;renderHost();}catch(error){hostStatus(error.message,true);}}
+  });
+  $('host-close').addEventListener('click',()=>$('host-dialog').close());
+  $('host-login').addEventListener('submit',login);$('food-form').addEventListener('submit',saveFood);$('food-mode').addEventListener('change',modeFields);$('food-cancel').addEventListener('click',resetForm);
+  $('host-logout').addEventListener('click',()=>{if(hostBusy)return;hostKey='';hostFoods=[];$('host-tools').hidden=true;$('host-login').hidden=false;resetForm();hostStatus('Abgemeldet.');});
+  $('refresh').addEventListener('click',()=>refresh());$('retry').addEventListener('click',savePending);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh(true);});
+  window.addEventListener('storage',event=>{if(!live&&event.key===demoKey&&!busy)refresh(true);});
+  if(live)setInterval(()=>{if(!document.hidden)refresh(true);},20000);
+  modeFields();if(pending)savePending();else refresh();
+})();
+</script>

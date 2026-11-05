@@ -1,0 +1,11 @@
+build/
+dist/
+node_modules/
+.env*
+!.env.example
+*.log
+.DS_Store
+.vscode/
+config.local.json
+.clasp.json
+*.local.json

@@ -1,0 +1,11 @@
+import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import vm from 'node:vm';
+const html = await readFile(new URL('./Index.html', import.meta.url), 'utf8');
+const client = await readFile(new URL('./Client.html', import.meta.url), 'utf8');
+const backend = await readFile(new URL('./Code.gs', import.meta.url), 'utf8');
+if (html.split('<!-- CLIENT -->').length !== 2) throw new Error('Expected exactly one client placeholder.');
+new vm.Script(client.replace(/^<script>\s*/, '').replace(/\s*<\/script>\s*$/, ''));
+new vm.Script(backend);
+await mkdir(new URL('./dist/', import.meta.url), { recursive: true });
+await writeFile(new URL('./dist/index.html', import.meta.url), html.replace('<!-- CLIENT -->', client));
+console.log('Built dist/index.html (local demo; live sharing uses Google Apps Script).');

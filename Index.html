@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Gemeinsam brunchen</title>
+  <style>
+    :root{--paper:#f8f5ed;--ink:#213d33;--muted:#657069;--line:#dddcd0;--orange:#b94c2d;--green:#e8eddf;--white:#fffef9}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:16px;line-height:1.55}
+    button{font:inherit;cursor:pointer}button:disabled{cursor:default}button:focus-visible,a:focus-visible{outline:3px solid var(--orange);outline-offset:4px}button{touch-action:manipulation}
+    .wrap{max-width:1120px;margin:auto;padding:0 40px}.top{display:flex;align-items:center;justify-content:space-between;padding:26px 0;border-bottom:1px solid var(--line);gap:16px}.brand{display:flex;align-items:center;gap:11px;font-size:12px;font-weight:750;letter-spacing:.15em}.brand svg{width:32px;height:32px}.tag{font-size:12px;border:1px solid var(--line);padding:6px 12px;border-radius:30px;white-space:nowrap}
+    .demo{padding:12px 18px;margin-top:24px;background:#f6e6ce;color:#764821;border:1px solid #e3c69e;border-radius:8px;font-size:13px}.demo strong{margin-right:5px}[hidden]{display:none!important}
+    .hero{padding:58px 0 43px;max-width:760px}.eyebrow{text-transform:uppercase;letter-spacing:.19em;font-size:11px;font-weight:750;color:var(--orange);margin:0 0 17px}h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(45px,6.5vw,73px);letter-spacing:-.055em;line-height:1.07;margin:0 0 22px}h1 em{color:var(--orange);font-weight:400}.intro{color:var(--muted);max-width:560px;font-size:17px;line-height:1.75;margin:0}
+    .layout{display:grid;grid-template-columns:minmax(0,1fr) 272px;gap:45px;align-items:start;padding-bottom:56px}.section-head{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:16px}h2{font-size:21px;font-weight:600;letter-spacing:-.035em;margin:0}.refresh{background:transparent;border:0;border-bottom:1px solid #8d9d91;color:var(--ink);font-size:13px;padding:6px 0}.refresh:disabled{opacity:.45}
+    .rows{display:grid;gap:10px}.food{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--white);border:1px solid var(--line);border-radius:12px;padding:21px 22px;min-height:110px}.number{font-size:11px;color:#858b7a;font-variant-numeric:tabular-nums;align-self:start;padding-top:8px}.food h3{font-size:18px;line-height:1.3;font-weight:600;margin:0 0 4px;overflow-wrap:anywhere}.unit{color:var(--muted);font-size:13px}.counter{display:flex;align-items:center;gap:7px}.step{display:grid;place-items:center;width:44px;height:44px;border:1px solid #b9c4b6;border-radius:50%;background:transparent;color:var(--ink);font-size:25px;line-height:1}.step.plus{background:var(--ink);color:#fff;border-color:var(--ink)}.step:hover:not(:disabled){background:#e6ecdf}.step.plus:hover:not(:disabled){background:#38634f}.step:disabled{opacity:.3}.amount{min-width:45px;padding:0 3px;text-align:center;font-size:24px;font-weight:550;font-variant-numeric:tabular-nums;line-height:1.25}.amount small{display:block;font-size:10px;font-weight:400;color:var(--muted);letter-spacing:.03em}
+    .status-line{display:flex;align-items:center;gap:8px;min-height:43px;font-size:12px;color:var(--muted);margin:10px 0 0}.dot{width:6px;height:6px;border-radius:50%;background:#69865c;flex:none}.status-line.error{color:#9b341e}.status-line.error .dot{background:#9b341e}.retry{font-size:13px;color:var(--ink);background:var(--white);border:1px solid var(--ink);border-radius:6px;padding:9px 15px;margin:0 0 15px}.empty{padding:36px 25px;border:1px dashed #b8c1b2;border-radius:12px;color:var(--muted)}.empty strong{display:block;color:var(--ink);font-weight:550;margin-bottom:6px}.empty p{margin:0;font-size:14px}
+    aside{background:var(--green);padding:29px 26px;border-radius:3px 3px 60px 3px;margin-top:48px}.table-icon{width:54px;height:54px;margin-bottom:18px;color:#66845a}aside h2{font-family:Georgia,"Times New Roman",serif;font-size:28px;line-height:1.2;font-weight:400;letter-spacing:-.02em;margin-bottom:24px}aside p{font-size:13px;color:#536450;margin:0 0 17px}aside p:last-child{margin:23px 0 3px;padding-top:20px;border-top:1px solid #c6d0bc;font-size:12px}.hint{display:flex;gap:10px;align-items:baseline}.hint b{font-size:18px;font-weight:500;color:var(--ink);width:16px;flex:none}.footer{display:flex;justify-content:space-between;gap:20px;border-top:1px solid var(--line);padding:22px 0 30px;color:var(--muted);font-size:11px;letter-spacing:.02em}.footer span:last-child{color:var(--orange)}
+    @media(max-width:800px){.layout{gap:26px;grid-template-columns:minmax(0,1fr) 230px}.wrap{padding:0 25px}.food{padding:18px 16px;grid-template-columns:minmax(0,1fr) auto}.number{display:none}aside{padding:25px 22px}}
+    @media(max-width:640px){.wrap{padding:0 20px}.top{padding:20px 0}.brand{font-size:10px;letter-spacing:.12em;gap:8px}.brand svg{width:27px;height:27px}.tag{font-size:10px;padding:5px 9px}.hero{padding:37px 0 32px}.hero h1{font-size:49px}.intro{font-size:15px}.layout{grid-template-columns:1fr;gap:20px;padding-bottom:34px}.section-head{margin-bottom:14px}.food{min-height:100px;padding:18px 15px;gap:10px}.food h3{font-size:17px}.counter{gap:2px}.step{width:44px;height:44px}.amount{min-width:41px;font-size:23px}aside{margin:0;padding:25px 26px;border-radius:3px 3px 45px 3px}aside h2{font-size:26px;margin-bottom:17px}.table-icon{display:none}aside p:last-child{margin-top:16px;padding-top:15px}.footer{font-size:10px}.demo{font-size:12px}.unit{font-size:12px}}
+    .refresh{flex-shrink:0}
+    .host-link{border:1px solid var(--line);border-radius:30px;padding:8px 16px;background:transparent;color:var(--ink);font-size:12px}.host-link:hover{background:var(--green)}
+    .interest-control{display:grid;justify-items:end;gap:8px}.interest-total{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}.interest-button{border:1px solid #b8c4b1;border-radius:24px;min-height:44px;padding:8px 15px;background:transparent;color:var(--ink);font-size:13px}.interest-button.selected{background:var(--ink);color:white;border-color:var(--ink)}.interest-button:disabled{opacity:.45}
+    dialog{width:min(560px,calc(100% - 28px));max-height:90dvh;border:1px solid var(--line);border-radius:16px;padding:30px;background:var(--paper);color:var(--ink);box-shadow:0 20px 90px #16382e33}dialog::backdrop{background:#19352b88}.dialog-head{display:flex;gap:20px;justify-content:space-between;align-items:start;margin-bottom:20px}.dialog-head h2{font-family:Georgia,serif;font-size:31px;font-weight:400}.dialog-head .eyebrow{margin:0 0 8px}.dialog-close{font-size:28px;line-height:1;background:transparent;border:0;color:var(--ink);padding:6px 10px}.host-toolbar{display:flex;align-items:center;gap:16px;justify-content:space-between;font-size:13px}.host-toolbar p{margin:0}.text-button{background:transparent;color:var(--ink);border:0;text-decoration:underline;text-underline-offset:4px;padding:8px 2px;font-size:13px}.primary{background:var(--ink);color:white;border:0;padding:12px 20px;border-radius:8px;min-height:44px}.primary:disabled{opacity:.4}dialog label{display:block;font-size:13px;font-weight:600;margin:17px 0 6px}dialog input:not([type=checkbox]),dialog select{width:100%;font:inherit;font-size:15px;padding:11px 12px;border:1px solid #bfc7b6;border-radius:8px;background:var(--white);color:var(--ink)}dialog input:focus-visible,dialog select:focus-visible{outline:2px solid var(--orange);outline-offset:2px}dialog select:disabled{opacity:.65}.field-hint{color:var(--muted);font-size:12px;line-height:1.6;margin:8px 0 18px}.checkbox-label{display:flex;align-items:center;gap:8px;font-weight:400;margin-bottom:20px}.checkbox-label input{width:18px;height:18px;accent-color:var(--ink)}#food-form{background:var(--white);border:1px solid var(--line);border-radius:12px;margin-top:20px;padding:20px}#food-form h3{font-size:17px;margin:0}.form-actions{display:flex;gap:18px;align-items:center}.host-list-title{margin:25px 0 6px;font-size:17px}.host-food{display:flex;gap:15px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:12px 0}.host-food strong{font-size:14px;font-weight:600;overflow-wrap:anywhere}.host-food small{display:block;color:var(--muted);font-size:12px}.host-status{font-size:13px;color:var(--muted);margin:20px 0 0}.host-status.error{color:#9b341e}#host-demo{margin:0 0 20px}
+    @media(max-width:640px){.food.interest{grid-template-columns:1fr}.interest-control{display:flex;align-items:center;justify-content:space-between;width:100%;gap:10px;margin-top:4px}dialog{padding:21px}.dialog-head h2{font-size:27px}#food-form{padding:16px}}
+    @media(max-width:640px){.top{flex-wrap:wrap;gap:10px}.section-head h2{font-size:19px}}
+    @media(prefers-reduced-motion:no-preference){.step{transition:background .15s,opacity .15s}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div class="brand"><svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><circle cx="20" cy="20" r="10" stroke="currentColor" stroke-width="1.5"/><circle cx="20" cy="20" r="6" stroke="currentColor" stroke-width="1"/><path d="M5 9v10m4-10v10M5 15h4M7 19v13M33 9v23m0-23c-5 6-5 12 0 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>UNSER BRUNCHTISCH</div>
+      <button class="host-link" id="host-open" type="button">Gastgeber</button>
+    </header>
+    <div id="demo" class="demo" hidden><strong>Beispielvorschau</strong> Diese Auswahl dient als Beispiel. Änderungen bleiben in diesem Browser und werden noch nicht in Google Sheets gespeichert.</div>
+    <main>
+      <section class="hero" aria-labelledby="title">
+        <p class="eyebrow">Kleine Planung, großer Genuss</p>
+        <h1 id="title">Gemeinsam <em>brunchen.</em></h1>
+        <p class="intro">Worauf hast du Appetit? Wähle eine Menge oder sag einfach: „Ja, ich möchte etwas.“ So können wir genug für alle einplanen.</p>
+      </section>
+      <div class="layout">
+        <section aria-labelledby="menu-title">
+          <div class="section-head"><h2 id="menu-title">Das kommt auf den Tisch</h2><button id="refresh" class="refresh" type="button">Aktualisieren ↻</button></div>
+          <div id="foods" class="rows" aria-busy="true"></div>
+          <div id="empty" class="empty" hidden><strong>Der Tisch wartet schon.</strong><p>Die Auswahl an Speisen und Getränken wird bald ergänzt.</p></div>
+          <div id="status-line" class="status-line" role="status" aria-live="polite"><span class="dot" aria-hidden="true"></span><span id="status">Die Auswahl wird geladen…</span></div>
+          <button id="retry" class="retry" type="button" hidden>Erneut speichern</button>
+        </section>
+        <aside aria-label="So funktioniert die gemeinsame Liste">
+          <svg class="table-icon" viewBox="0 0 60 60" fill="none" aria-hidden="true"><circle cx="30" cy="30" r="18" stroke="currentColor" stroke-width="1.5"/><circle cx="30" cy="30" r="12" stroke="currentColor"/><path d="M30 2v5m0 46v5M2 30h5m46 0h5M10 10l4 4m32 32 4 4M10 50l4-4m32-32 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <h2>Platz für deine<br>Lieblingssachen.</h2>
+          <p class="hint"><b>+</b><span>Füge ein Stück, eine Tasse oder einen Becher hinzu.</span></p>
+          <p class="hint"><b>✓</b><span>Bei „Ich möchte etwas“ zählen wir Personen statt Portionen.</span></p>
+          <p>Die Zahlen gelten für alle. Mit Minus oder einem zweiten Tippen nimmst du deinen Wunsch zurück. Deine Ja/Nein-Auswahl wird in diesem Browser gemerkt.</p>
+        </aside>
+      </div>
+    </main>
+    <footer class="footer"><span>Eine gemeinsame Liste. Ein voller Tisch.</span><span>Ohne Namen. Mit Vorfreude.</span></footer>
+  </div>
+  <dialog id="host-dialog" aria-labelledby="host-title">
+    <div class="dialog-head"><div><p class="eyebrow">Deine Brunchplanung</p><h2 id="host-title">Gastgeber-Bereich</h2></div><button class="dialog-close" id="host-close" aria-label="Gastgeber-Bereich schließen" type="button">×</button></div>
+    <p id="host-demo" class="demo" hidden>Lokale Vorschau: Hier kannst du die Verwaltung ausprobieren. Der echte Gastgeber-Bereich benötigt deinen privaten Code.</p>
+    <form id="host-login">
+      <div id="host-code-field"><label for="host-code">Gastgeber-Code</label><input id="host-code" type="password" autocomplete="off" required><p class="field-hint">Deinen Code findest du nach der Einrichtung im Brunch-Menü deiner Google-Tabelle.</p></div>
+      <button id="host-login-button" class="primary" type="submit">Anmelden</button>
+    </form>
+    <section id="host-tools" hidden>
+      <div class="host-toolbar"><p>Speisen und Getränke direkt hier verwalten.</p><button id="host-logout" class="text-button" type="button">Abmelden</button></div>
+      <form id="food-form">
+        <h3 id="food-form-title">Neue Auswahl hinzufügen</h3>
+        <label for="food-name">Speise oder Getränk</label><input id="food-name" maxlength="80" placeholder="Zum Beispiel Tee oder Brötchen" required>
+        <label for="food-mode">Was möchtest du zählen?</label><select id="food-mode"><option value="quantity">Menge – Stück, Tassen, Becher …</option><option value="interest">Interesse – „Ich möchte etwas“</option></select>
+        <p id="mode-help" class="field-hint">Gäste wählen mit Plus und Minus die gewünschte Menge.</p>
+        <div id="food-unit-field"><label for="food-unit">Einheit</label><input id="food-unit" list="unit-options" value="Stück" maxlength="24" required><datalist id="unit-options"><option value="Stück"><option value="Tassen"><option value="Becher"><option value="Gläser"><option value="Portionen"></datalist></div>
+        <label class="checkbox-label"><input id="food-active" type="checkbox" checked>Für Gäste sichtbar</label>
+        <div class="form-actions"><button id="food-save" class="primary" type="submit">Hinzufügen</button><button id="food-cancel" class="text-button" type="button" hidden>Abbrechen</button></div>
+      </form>
+      <h3 class="host-list-title">Deine Auswahl</h3><div id="host-foods"></div>
+    </section>
+    <p id="host-status" role="status" aria-live="polite" class="host-status"></p>
+  </dialog>
+  <!-- CLIENT -->
+</body>
+</html>
