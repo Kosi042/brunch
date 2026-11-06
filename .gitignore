@@ -1,4 +1,5 @@
 build/
+.brunch-local/
 dist/
 node_modules/
 .env*

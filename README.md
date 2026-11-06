@@ -1,66 +1,37 @@
 # Gemeinsam brunchen
 
-Ein Brunch-Planer auf Deutsch. Du verwaltest Speisen und Getränke direkt auf der Website im **Gastgeber-Bereich**. Gäste brauchen keine Namen oder Konten.
+Gäste sehen die gemeinsamen Summen direkt auf der Website. **+ / −** zählt Stück, Tassen oder eine andere Einheit. **„Ja, ich möchte etwas“** zählt eine Person pro Browser. Ein zweiter Klick nimmt die Auswahl zurück. Die Gastgeberin oder der Gastgeber fügt Speisen und Getränke unter **Gastgeber** hinzu und kann Einträge umbenennen oder ausblenden.
 
-## Zwei Arten von Auswahl
+Der Planer speichert Speisen und Änderungen in PostgreSQL bei Supabase. Jede bestätigte Änderung ist für alle Gäste gespeichert. Beim erneuten Senden erkennt die Datenbank denselben Klick. Im Browser bleiben die anonyme Kennung und gegebenenfalls ein unbestätigter Klick. Wer den Browser oder das Gerät wechselt, kann beim selben Getränk erneut mitgezählt werden.
 
-- **Menge:** Plus und Minus ändern die gemeinsame Gesamtmenge. Die Einheit ist frei wählbar, zum Beispiel Stück, Tassen, Becher, Gläser oder Portionen.
-- **Interesse – „Ich möchte etwas“:** Ein Ja zählt eine Person. Ein zweiter Klick nimmt die eigene Auswahl zurück. Wiederholte Ja-Anfragen zählen nicht mehrfach.
+## Privat verwalten
 
-Die Ja/Nein-Auswahl wird über eine zufällige Kennung im Browser gespeichert. Es werden keine Namen erfasst. Ein anderer Browser, ein anderes Gerät oder gelöschter Browserspeicher kann dieselbe Person erneut zählen. Das ist eine Planungshilfe für eine vertraute Gruppe, keine Identitätsprüfung.
+Der Gastgeber-Code wird beim Einrichten zufällig erzeugt. In deinem Supabase-Projekt kannst du ihn im **SQL Editor** mit dieser Abfrage anzeigen:
 
-## Aktueller Stand
-
-**Die Website ist eine lokale Vorschau und noch nicht mit einer echten Google-Tabelle verbunden.** Beispielwerte und Änderungen in der Vorschau bleiben in deinem Browser. Unter **Gastgeber → Verwaltung ausprobieren** kannst du Einträge hinzufügen, bearbeiten oder ausblenden. Die Vorschau braucht keinen echten Zugangscode und ist ausdrücklich als solche gekennzeichnet.
-
-Der produktive Google-Apps-Script-Backendcode ist enthalten. Dort prüft der Server den Gastgeber-Code vor jeder Änderung der Speisekarte. Der Code wird beim Einrichten zufällig erzeugt, bleibt in den Script Properties und wird weder in den Quellcode noch in einen Gast-Link geschrieben. Die Website hält einen eingegebenen Code nur im Arbeitsspeicher; nach dem Neuladen meldest du dich erneut an.
-
-## Lokal starten
-
-Im Ordner dieses Repositorys:
-
-```text
-node preview.mjs
+```sql
+select host_code from brunch_private.settings;
 ```
 
-Öffne die ausgegebene Adresse. Alternativ erzeugt `node build.mjs` eine eigenständige Vorschau unter `dist/index.html`. `Index.html` ist die Vorlage; `Client.html` enthält das eingebundene JavaScript. Zum direkten Öffnen ohne Server bitte die gebaute Datei verwenden.
+Gib den Code auf der Website unter **Gastgeber** ein. Teile mit Gästen nur den Link zur Website. Du kannst eine Auswahl ausblenden und später mit ihren bisherigen Stimmen wieder anzeigen.
 
-## Google Sheets einmalig einrichten
+## Einrichtung für eine eigene Installation
 
-1. Erstelle eine leere Google-Tabelle. Die Tabelle selbst bleibt privat; Gäste erhalten später den Link zur Web-App.
-2. Öffne **Erweiterungen → Apps Script** und kopiere `Code.gs` in den Editor.
-3. Lege die beiden HTML-Dateien **Index** und **Client** an. Füge jeweils den Inhalt von `Index.html` und `Client.html` ein.
-4. Speichere und führe im Editor einmal `setupBrunch_` aus. Google fragt dabei nach der Berechtigung für Tabellenzugriff. Die Einrichtung erzeugt die Blätter `Foods` und `Changes` sowie einen zufälligen Gastgeber-Code. Es werden keine Beispielgerichte eingetragen.
-5. Lade die Tabelle neu. Unter **Brunch → Gastgeber-Code anzeigen** findest du deinen privaten Zugangscode.
-6. Wähle im Skripteditor **Bereitstellen → Neue Bereitstellung → Web-App**. Die App soll als du ausgeführt werden. Wähle für eine Anmeldung ohne Google-Konto **Jeder**, sofern dein Konto bzw. deine Organisation diese Option erlaubt.
-7. Öffne den bereitgestellten `/exec`-Link und wähle **Gastgeber**. Gib deinen Code ein und lege deine Speisen und Getränke auf der Website an.
-8. Prüfe den Gast-Link in einem zweiten Browser. Teile anschließend diesen Link mit deinen Gästen.
+1. Öffne im Supabase-Projekt den **SQL Editor** und führe [brunch.sql](supabase/brunch.sql) einmal aus. Das Skript richtet nur den Brunch-Bereich ein. Ein erneuter Lauf bricht ab, wenn dieser Bereich schon existiert.
+2. Unter **Connect** findest du die Projekt-URL und den **Publishable key** für den Browser. Trage die beiden öffentlichen Werte in `public-config.json` als `{"url":"…","key":"…"}` ein. Alternativ lassen sie sich unter **Settings → Secrets and variables → Actions → Variables** als `SUPABASE_URL` und `SUPABASE_PUBLISHABLE_KEY` setzen. Der private Gastgeber-Code gehört ausschließlich in die Datenbank.
+3. Wähle im GitHub-Repository unter **Settings → Pages → Source** die Option **GitHub Actions**. Der Workflow **Publish brunch planner** prüft den Planer und veröffentlicht die Website. Er lässt sich unter **Actions** auch von Hand starten.
+4. Öffne die fertige Website, melde dich unter **Gastgeber** an und lege deine Speisen und Getränke an. Die öffentliche Ansicht startet mit einer leeren Liste.
 
-`appsscript.json` enthält die benötigte Berechtigung und die Zeitzone. Die Datei kann optional über die Projekteinstellungen im Editor eingeblendet und übernommen werden. Bei Codeänderungen die Web-App als neue Version bereitstellen; Änderungen an Speisen auf der Website werden sofort gespeichert und brauchen keine neue Bereitstellung.
+Der Planer benötigt keine Google-Berechtigung. Wer die frühere Version bereits in Apps Script veröffentlicht hat, kann die alte Bereitstellung dort archivieren und die alte Freigabe in den [Google-Kontoverbindungen](https://myaccount.google.com/connections) entfernen. Die neue Version übernimmt keine Einträge aus einer früheren Tabelle.
 
-Der Host-Code lässt sich bei Bedarf durch Entfernen der Script Property `BRUNCH_HOST_KEY` und erneutes Ausführen von `setupBrunch_` ersetzen. Alte Codes gelten danach nicht mehr. Die Funktion zur Codeanzeige ist privat und kann von Gästen nicht aufgerufen werden.
+## Auf dem eigenen Rechner
 
-## Speisen verwalten
-
-- **Gastgeber → Hinzufügen:** Namen, Zählweise und bei Mengen die Einheit auswählen.
-- **Bearbeiten:** Namen oder Einheit ändern und einen Eintrag ausblenden bzw. wieder anzeigen. Seine bisherigen Stimmen und Mengen bleiben erhalten.
-- Die Zählweise eines bestehenden Eintrags bleibt fest. Für einen Wechsel zwischen Mengen und Personen einen neuen Eintrag erstellen und den alten ausblenden.
-- `Foods` dient als Übersicht mit automatisch berechneten Summen. `Changes` ist das Änderungsprotokoll. IDs, Summen und Protokollzeilen nicht manuell bearbeiten.
-- Die Einrichtung kann das frühere Format mit vier Spalten erweitern und bestehende Mengen übernehmen.
-
-## Separate Repositorys
-
-Dieses Repository ist unabhängig von [Kosi042/costume-contest](https://github.com/Kosi042/costume-contest). Beide lokalen Ordner haben ihre eigene Git-Historie und ihre eigenen Einstellungen. Die bestehende Wettbewerbsseite behält ihre Adresse.
-
-**GitHub Pages ist noch nicht für die Brunch-Web-App eingerichtet.** Der Build erzeugt aktuell eine gekennzeichnete lokale Demo. Ein Upload allein verbindet sie nicht mit Google Sheets: `google.script.run` steht nur innerhalb der Google-Apps-Script-Web-App bereit. Für eine produktive GitHub-Adresse muss die Verbindung zum Google-Backend ergänzt und anschließend mit zwei Browsern getestet werden. Das Einchecken des Codes veröffentlicht noch keine Website.
-
-## Prüfungen
+Mit Node.js ab Version 22:
 
 ```text
-node --test tests/backend.test.mjs
-node build.mjs
+npm ci
+npm run dev
 ```
 
-Die Tests prüfen unter anderem Host-Zugriff, wiederholte Anfragen, Einmalzählung pro Browser, Zurücknehmen einer Auswahl, getrennte Besucher, ausgeblendete Einträge und die Migration des Tabellenformats. Sie verwenden einen Ersatz für Google Sheets. Die tatsächliche Google-Anmeldung und Bereitstellung sind noch nicht live geprüft.
+Öffne die ausgegebene Adresse. Die lokale Version verwendet dieselben Datenbankregeln wie die veröffentlichte Website. Sie speichert ihre eigenen Daten auf diesem Rechner im Ordner `.brunch-local/db`. Den **lokalen** Gastgeber-Code findest du in `.brunch-local/Gastgeber-Code.txt`. Dieser Ordner wird weder veröffentlicht noch in Git gespeichert.
 
-Technische Referenzen: [Google-Web-Apps](https://developers.google.com/apps-script/guides/web), [Kommunikation mit Apps Script](https://developers.google.com/apps-script/guides/html/communication), [GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages).
+`npm test` prüft Berechtigungen, Änderungen mehrerer Gäste, Wiederholungen nach Verbindungsproblemen und das erneute Öffnen der gespeicherten Datenbank. `npm run build` erzeugt die Website mit der öffentlichen Verbindung unter `dist/index.html`.

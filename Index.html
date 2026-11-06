@@ -33,7 +33,6 @@
       <div class="brand"><svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><circle cx="20" cy="20" r="10" stroke="currentColor" stroke-width="1.5"/><circle cx="20" cy="20" r="6" stroke="currentColor" stroke-width="1"/><path d="M5 9v10m4-10v10M5 15h4M7 19v13M33 9v23m0-23c-5 6-5 12 0 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>UNSER BRUNCHTISCH</div>
       <button class="host-link" id="host-open" type="button">Gastgeber</button>
     </header>
-    <div id="demo" class="demo" hidden><strong>Beispielvorschau</strong> Diese Auswahl dient als Beispiel. Änderungen bleiben in diesem Browser und werden noch nicht in Google Sheets gespeichert.</div>
     <main>
       <section class="hero" aria-labelledby="title">
         <p class="eyebrow">Kleine Planung, großer Genuss</p>
@@ -61,9 +60,8 @@
   </div>
   <dialog id="host-dialog" aria-labelledby="host-title">
     <div class="dialog-head"><div><p class="eyebrow">Deine Brunchplanung</p><h2 id="host-title">Gastgeber-Bereich</h2></div><button class="dialog-close" id="host-close" aria-label="Gastgeber-Bereich schließen" type="button">×</button></div>
-    <p id="host-demo" class="demo" hidden>Lokale Vorschau: Hier kannst du die Verwaltung ausprobieren. Der echte Gastgeber-Bereich benötigt deinen privaten Code.</p>
     <form id="host-login">
-      <div id="host-code-field"><label for="host-code">Gastgeber-Code</label><input id="host-code" type="password" autocomplete="off" required><p class="field-hint">Deinen Code findest du nach der Einrichtung im Brunch-Menü deiner Google-Tabelle.</p></div>
+      <div id="host-code-field"><label for="host-code">Gastgeber-Code</label><input id="host-code" type="password" autocomplete="off" required></div>
       <button id="host-login-button" class="primary" type="submit">Anmelden</button>
     </form>
     <section id="host-tools" hidden>
@@ -81,6 +79,7 @@
     </section>
     <p id="host-status" role="status" aria-live="polite" class="host-status"></p>
   </dialog>
+  <script type="application/json" id="brunch-config"><!-- CONFIG --></script>
   <!-- CLIENT -->
 </body>
 </html>

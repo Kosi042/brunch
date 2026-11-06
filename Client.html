@@ -1,17 +1,9 @@
 <script>
 (() => {
   'use strict';
-  const live = Boolean(window.google && google.script && google.script.run);
+  const config = JSON.parse(document.getElementById('brunch-config').textContent);
   const $ = id => document.getElementById(id);
-  const demoKey = 'brunch-demo-v2', pendingKey = 'brunch-pending-v2', visitorKey = 'brunch-visitor-v1';
-  const examples = [
-    {id:'rolls',name:'Brötchen',unit:'Stück',mode:'quantity'},
-    {id:'eggs',name:'Eier',unit:'Stück',mode:'quantity'},
-    {id:'croissants',name:'Croissants',unit:'Stück',mode:'quantity'},
-    {id:'coffee',name:'Kaffee',unit:'Tassen',mode:'quantity'},
-    {id:'tea',name:'Tee',unit:'Personen',mode:'interest'},
-    {id:'juice',name:'Orangensaft',unit:'Gläser',mode:'quantity'}
-  ].map(food => ({...food,active:true,total:0,selected:false}));
+  const pendingKey = 'brunch-database-pending-v1', visitorKey = 'brunch-visitor-v1';
   let localStore, sessionStore;
   try { localStore = window.localStorage; sessionStore = window.sessionStorage; } catch {}
   function read(storage,key) { try { return JSON.parse(storage.getItem(key)); } catch { return null; } }
@@ -19,18 +11,9 @@
   function id() { return crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(20)),n=>n.toString(16).padStart(2,'0')).join(''); }
   let visitorId = read(localStore,visitorKey);
   if(typeof visitorId!=='string' || !/^[a-zA-Z0-9_-]{16,100}$/.test(visitorId)) { visitorId=id(); if(!write(localStore,visitorKey,visitorId)) visitorId=''; }
-  let demoFoods = read(localStore,demoKey);
-  if(!Array.isArray(demoFoods)) {
-    const old = read(localStore,'brunch-example-totals-v1');
-    demoFoods = examples.map(food => ({...food,total:food.mode==='quantity' ? Math.max(0,Math.min(10000,old?.find(item=>item.id===food.id)?.total || 0)) : 0}));
-  }
   let menu={foods:[],maximum:10000}, busy=false, pending=null, hostKey='', hostFoods=[], hostBusy=false, editId=null;
-  if(live) {
-    const saved=read(sessionStore,pendingKey);
-    if(saved && ['changeCount','setInterest'].includes(saved.method) && Array.isArray(saved.args)) pending=saved;
-  }
-  $('demo').hidden=live; $('host-demo').hidden=live; $('host-code-field').hidden=!live;
-  $('host-code').required=live; $('host-login-button').textContent=live?'Anmelden':'Verwaltung ausprobieren';
+  const saved=read(sessionStore,pendingKey);
+  if(saved && ['changeCount','setInterest'].includes(saved.method) && Array.isArray(saved.args)) pending=saved;
   function status(text,error=false) { $('status').textContent=text; $('status-line').classList.toggle('error',error); }
   function hostStatus(text,error=false) { $('host-status').textContent=text; $('host-status').classList.toggle('error',error); }
   function controls() {
@@ -73,47 +56,48 @@
     $('empty').hidden=menu.foods.some(food=>food.active); controls();
     if(focusFood) [...document.querySelectorAll('[data-food]')].find(button=>button.dataset.food===focusFood && button.dataset.delta===focusDelta && !button.disabled)?.focus({preventScroll:true});
   }
-  function demoSnapshot(host=false) { return {foods:demoFoods.filter(food=>host||food.active).map(food=>({...food})),maximum:10000}; }
-  function call(method,...args) {
-    if(!live) {
-      const saved=read(localStore,demoKey); if(Array.isArray(saved))demoFoods=saved;
-      const food=demoFoods.find(item=>item.id===args[0]);
-      if(method==='changeCount' && food?.mode==='quantity') food.total=Math.max(0,Math.min(10000,food.total+args[1]));
-      if(method==='setInterest' && food?.mode==='interest') { food.total+=Number(args[1])-Number(food.selected); food.selected=args[1]; }
-      if(method==='saveFood') {
-        if(!args[0])return Promise.reject(new Error('Bitte zuerst den Gastgeber-Bereich öffnen.'));
-        const input=args[1], existing=demoFoods.find(item=>item.id===input.id);
-        const updated={...input,unit:input.mode==='interest'?'Personen':input.unit,total:existing?.total||0,selected:existing?.selected||false};
-        if(existing)demoFoods[demoFoods.indexOf(existing)]=updated; else demoFoods.push(updated);
-      }
-      if(method!=='getMenu')write(localStore,demoKey,demoFoods);
-      return Promise.resolve(demoSnapshot(method==='saveFood'||Boolean(args[1] && method==='getMenu')));
+  async function call(method, ...args) {
+    let endpoint, data;
+    if (method === 'getMenu') {
+      endpoint = 'brunch_menu';
+      data = {p_visitor: args[0], p_host: args[1]};
+    } else if (method === 'saveFood') {
+      endpoint = 'brunch_save_food';
+      data = {p_host: args[0], p_input: args[1], p_visitor: args[2]};
+    } else {
+      endpoint = 'brunch_change';
+      const interest = method === 'setInterest';
+      data = {p_food: args[0], p_request: args[interest ? 3 : 2], p_visitor: args[interest ? 2 : 3]};
+      data[interest ? 'p_selected' : 'p_delta'] = args[1];
     }
-    return new Promise((resolve,reject)=>{
-      const runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
-      if(method==='getMenu')runner.getMenu(...args);
-      else if(method==='changeCount')runner.changeCount(...args);
-      else if(method==='setInterest')runner.setInterest(...args);
-      else if(method==='saveFood')runner.saveFood(...args);
-      else reject(new Error('Unbekannte Aktion.'));
+    const headers = {'Content-Type': 'application/json'};
+    if (config.key) headers.apikey = config.key;
+    const response = await fetch(config.rpc + endpoint, {
+      method: 'POST', headers, body: JSON.stringify(data), cache: 'no-store',
+      credentials: 'omit', referrerPolicy: 'no-referrer', signal: AbortSignal.timeout(20000)
     });
+    const result = await response.json().catch(() => null);
+    if (!response.ok || !Array.isArray(result?.foods)) {
+      throw new Error(result?.code === 'P0001' ? result.message : 'Der gemeinsame Speicher ist gerade nicht erreichbar.');
+    }
+    return result;
   }
   async function refresh(quiet=false) {
     if(busy||pending||hostBusy)return; busy=true; controls(); if(!quiet)status('Die gemeinsame Liste wird aktualisiert…');
     try {
       menu=await call('getMenu',visitorId); busy=false; render();
-      status(!visitorId?'Für die Ja/Nein-Auswahl bitte Browserspeicher erlauben.':live?'Aktuell · die Gesamtmengen werden automatisch aktualisiert':'Beispielvorschau · nur in diesem Browser gespeichert');
+      status(!visitorId?'Für die Ja/Nein-Auswahl bitte Browserspeicher erlauben.':'Aktuell · die Gesamtmengen werden automatisch aktualisiert');
     } catch(error) {status(error.message||'Die Auswahl konnte nicht geladen werden.',true);} finally {busy=false;controls();}
   }
   async function change(method,args) {
-    if(busy||pending)return; pending={method,args}; if(live)write(sessionStore,pendingKey,pending); await savePending();
+    if(busy||pending)return; pending={method,args}; write(sessionStore,pendingKey,pending); await savePending();
   }
   async function savePending() {
     if(busy||!pending)return; busy=true; $('retry').hidden=true; controls(); status('Deine Änderung wird gespeichert…');
     try {
       const result=await call(pending.method,...pending.args), changed=result.foods.find(food=>food.id===pending.args[0]);
       menu=result;pending=null;write(sessionStore,pendingKey,null);busy=false;render();
-      status(result.notice||((live?'Gespeichert':'Vorschau aktualisiert')+(changed?' · '+changed.name+': '+changed.total+' '+(changed.mode==='interest'&&changed.total===1?'Person':changed.unit):'')));
+      status(result.notice||('Gespeichert'+(changed?' · '+changed.name+': '+changed.total+' '+(changed.mode==='interest'&&changed.total===1?'Person':changed.unit):'')));
     } catch(error) {status('Nicht bestätigt. Mit „Erneut speichern“ wird dieselbe Änderung geprüft, ohne sie doppelt zu zählen. '+(error.message||''),true);$('retry').hidden=false;}
     finally {busy=false;controls();}
   }
@@ -139,7 +123,7 @@
   }
   async function login(event) {
     event.preventDefault();if(hostBusy)return;hostBusy=true;$('host-login-button').disabled=true;hostStatus('Gastgeber-Zugang wird geprüft…');
-    const key=live?$('host-code').value.trim():'local-preview';
+    const key=$('host-code').value.trim();
     try {
       if(!key)throw new Error('Bitte den Gastgeber-Code eingeben.');
       const result=await call('getMenu',visitorId,key);hostKey=key;hostFoods=result.foods;$('host-code').value='';$('host-login').hidden=true;$('host-tools').hidden=false;renderHost();hostStatus('');
@@ -167,8 +151,7 @@
   $('host-logout').addEventListener('click',()=>{if(hostBusy)return;hostKey='';hostFoods=[];$('host-tools').hidden=true;$('host-login').hidden=false;resetForm();hostStatus('Abgemeldet.');});
   $('refresh').addEventListener('click',()=>refresh());$('retry').addEventListener('click',savePending);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh(true);});
-  window.addEventListener('storage',event=>{if(!live&&event.key===demoKey&&!busy)refresh(true);});
-  if(live)setInterval(()=>{if(!document.hidden)refresh(true);},20000);
+  setInterval(()=>{if(!document.hidden)refresh(true);},20000);
   modeFields();if(pending)savePending();else refresh();
 })();
 </script>
