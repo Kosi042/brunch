@@ -29,6 +29,9 @@ create table brunch_private.changes (
 );
 create index brunch_interest on brunch_private.changes (food_id, visitor, seq desc)
   where selected is not null;
+alter table brunch_private.settings enable row level security;
+alter table brunch_private.foods enable row level security;
+alter table brunch_private.changes enable row level security;
 revoke all on all tables in schema brunch_private from public, anon, authenticated;
 
 create function brunch_private.require_host(code text) returns void
